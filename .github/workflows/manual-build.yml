@@ -1,0 +1,49 @@
+name: Manual Package Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_flatpak:
+        description: "Build Flatpak too (requires GNOME runtime download)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build packaging image
+        run: docker build --no-cache -t catgirldownloader-packager .
+
+      - name: Build packages (default)
+        if: ${{ !inputs.build_flatpak }}
+        run: docker run --rm -v "${{ github.workspace }}:/workspace" catgirldownloader-packager
+
+      - name: Build packages (with Flatpak)
+        if: ${{ inputs.build_flatpak }}
+        run: >
+          docker run --rm -v "${{ github.workspace }}:/workspace" catgirldownloader-packager
+          sh -lc 'git config --global --add safe.directory /workspace
+          && git config --global --add safe.directory /workspace/.git
+          && flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          && flatpak --user install -y org.gnome.Platform/x86_64/49 org.gnome.Sdk/x86_64/49
+          && BUILD_FLATPAK=1 ./package.sh'
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: catgirldownloader-packages-${{ github.run_number }}
+          path: |
+            build/*.deb
+            build/*.rpm
+            build/*.apk
+            build/*.pkg.tar.zst
+            build/*.tar.gz
+            build/*.AppImage
+            build/*.flatpak
+          if-no-files-found: error
+          retention-days: 14
