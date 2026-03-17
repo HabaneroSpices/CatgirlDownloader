@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     xz-utils \
     file \
+    flatpak \
     flatpak-builder \
     meson \
     ninja-build \

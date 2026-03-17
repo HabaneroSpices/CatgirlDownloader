@@ -4,7 +4,7 @@ tasks:
   build-image:
     desc: Build Docker image
     cmds:
-      - docker build --no-cache -t catgirldownloader-packager .
+      - docker build -t catgirldownloader-packager .
 
   build-packages:
     desc: Build packages (no Flatpak)
@@ -13,10 +13,15 @@ tasks:
       - docker run --rm -v "{{.USER_WORKING_DIR}}":/workspace catgirldownloader-packager
 
   build-packages-flatpak:
-    desc: Build packages with Flatpak enabled
-    deps: [build-image]
+    desc: Build packages in Docker and Flatpak on host
+    deps: [build-packages]
     cmds:
-      - docker run --rm -e BUILD_FLATPAK=1 -v "{{.USER_WORKING_DIR}}":/workspace catgirldownloader-packager
+      - mkdir -p build
+      - flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - flatpak --user install -y org.gnome.Platform/x86_64/49 org.gnome.Sdk/x86_64/49
+      - rm -rf .flatpak-builder/ flatpak-app/
+      - flatpak-builder --disable-rofiles-fuse --install --user --force-clean flatpak-app moe.nyarchlinux.catgirldownloader.json
+      - flatpak build-bundle ~/.local/share/flatpak/repo build/catgirldownloader.flatpak moe.nyarchlinux.catgirldownloader
 
   build:
     desc: Alias for build-packages

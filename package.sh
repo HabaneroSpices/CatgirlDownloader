@@ -17,7 +17,11 @@ APPID="moe.nyarchlinux.catgirldownloader"
 BUNDLENAME="catgirldownloader.flatpak"
 BUILD_FLATPAK="${BUILD_FLATPAK:-0}"
 if [ "$BUILD_FLATPAK" = "1" ]; then
-    flatpak-builder --disable-rofiles-fuse --install --user --force-clean flatpak-app "$APPID".json
+    FLATPAK_BUILDER_FLAGS="--disable-rofiles-fuse --install --user --force-clean"
+    if flatpak-builder --help 2>/dev/null | grep -q -- "--disable-sandbox"; then
+        FLATPAK_BUILDER_FLAGS="--disable-sandbox $FLATPAK_BUILDER_FLAGS"
+    fi
+    flatpak-builder $FLATPAK_BUILDER_FLAGS flatpak-app "$APPID".json
     flatpak build-bundle ~/.local/share/flatpak/repo "$BUNDLENAME" "$APPID"
     mv "$BUNDLENAME" build/
 else
