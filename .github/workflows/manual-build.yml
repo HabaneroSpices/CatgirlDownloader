@@ -57,8 +57,16 @@ jobs:
           flatpak --user install -y org.gnome.Platform/x86_64/49 org.gnome.Sdk/x86_64/49
 
       - name: Build packages
+        if: ${{ !inputs.build_flatpak }}
+        run: ./package.sh
+
+      - name: Build packages (without Flatpak) + Flatpak bundle
+        if: ${{ inputs.build_flatpak }}
         run: |
-          BUILD_FLATPAK=${{ inputs.build_flatpak && '1' || '0' }} ./package.sh
+          BUILD_FLATPAK=0 ./package.sh
+          rm -rf flatpak-repo flatpak-build-dir
+          flatpak-builder --disable-rofiles-fuse --force-clean --repo=flatpak-repo flatpak-build-dir moe.nyarchlinux.catgirldownloader.json
+          flatpak build-bundle flatpak-repo build/catgirldownloader.flatpak moe.nyarchlinux.catgirldownloader
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
