@@ -17,7 +17,7 @@ APPID="moe.nyarchlinux.catgirldownloader"
 BUNDLENAME="catgirldownloader.flatpak"
 BUILD_FLATPAK="${BUILD_FLATPAK:-0}"
 if [ "$BUILD_FLATPAK" = "1" ]; then
-    flatpak-builder --install --user --force-clean flatpak-app "$APPID".json
+    flatpak-builder --disable-rofiles-fuse --install --user --force-clean flatpak-app "$APPID".json
     flatpak build-bundle ~/.local/share/flatpak/repo "$BUNDLENAME" "$APPID"
     mv "$BUNDLENAME" build/
 else
