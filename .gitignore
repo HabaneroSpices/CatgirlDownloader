@@ -3,3 +3,6 @@
 .flatpak-builder
 flatpak
 build
+.local
+__pycache__
+*.pyc

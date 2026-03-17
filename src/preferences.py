@@ -9,6 +9,8 @@ class UserPreferences:
             "auto_reload_enabled": False,
             "auto_reload_interval": 5,
             "danbooru_tags": "",
+            "danbooru_login": "",
+            "danbooru_api_key": "",
         }
         self.preferences = dict(self._defaults)
         self.directory = os.path.join(GLib.get_user_config_dir(), "catgirldownloader")

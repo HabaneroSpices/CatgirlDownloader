@@ -19,6 +19,7 @@
 
 import threading
 import requests
+import os
 from gi.repository import Gtk, Adw, GdkPixbuf, GLib, Gio, GObject
 
 from .catgirl import CatgirlDownloaderAPI
@@ -225,9 +226,27 @@ class CatgirldownloaderWindow(Adw.ApplicationWindow):
         image = avatar.get_next_sibling()
         
         if item.icon:
-            avatar.set_visible(False)
-            image.set_visible(True)
-            image.set_from_icon_name(item.icon)
+            icon_set = False
+            display = self.get_display()
+            if display:
+                icon_theme = Gtk.IconTheme.get_for_display(display)
+                if icon_theme and icon_theme.has_icon(item.icon):
+                    image.set_from_icon_name(item.icon)
+                    icon_set = True
+
+            if not icon_set:
+                icon_file = self._get_bundled_icon_path(item.icon)
+                if icon_file:
+                    image.set_from_file(icon_file)
+                    icon_set = True
+
+            if icon_set:
+                avatar.set_visible(False)
+                image.set_visible(True)
+            else:
+                image.set_visible(False)
+                avatar.set_visible(True)
+                avatar.set_text(item.name)
         else:
             image.set_visible(False)
             avatar.set_visible(True)
@@ -249,6 +268,39 @@ class CatgirldownloaderWindow(Adw.ApplicationWindow):
             item.api.open_settings_window(btn)
             
         settings_btn._handler_id = settings_btn.connect("clicked", on_settings_clicked)
+
+    def _get_bundled_icon_path(self, icon_name: str):
+        appdir = os.environ.get("APPDIR")
+        candidates = []
+        if appdir:
+            candidates.append(
+                os.path.join(appdir, "usr", "share", "icons", "hicolor", "scalable", "apps", f"{icon_name}.svg")
+            )
+            candidates.append(
+                os.path.join(appdir, "usr", "share", "icons", "hicolor", "256x256", "apps", f"{icon_name}.png")
+            )
+
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates.append(
+            os.path.normpath(
+                os.path.join(module_dir, "..", "data", "icons", "hicolor", "scalable", "apps", f"{icon_name}.svg")
+            )
+        )
+        candidates.append(
+            os.path.normpath(
+                os.path.join(module_dir, "..", "..", "icons", "hicolor", "scalable", "apps", f"{icon_name}.svg")
+            )
+        )
+        candidates.append(
+            os.path.normpath(
+                os.path.join(module_dir, "..", "..", "icons", "hicolor", "256x256", "apps", f"{icon_name}.png")
+            )
+        )
+
+        for path in candidates:
+            if os.path.isfile(path):
+                return path
+        return None
 
     def on_source_changed(self, dropdown, _pspec):
         item = dropdown.get_selected_item()
@@ -358,6 +410,7 @@ class CatgirldownloaderWindow(Adw.ApplicationWindow):
                 ct = self.downloaders[next(iter(self.downloaders))]
                 
             nsfw_mode_setting = self.settings.get_preference("nsfw_mode")
+            print(f"[window] fetching image from source='{source_id}' nsfw_mode='{nsfw_mode_setting}'")
             url = ct.get_image_url(nsfw_mode_setting) if nsfw_mode_setting is not None else ct.get_image_url()
             info = getattr(ct, "info", None)
             
@@ -368,6 +421,7 @@ class CatgirldownloaderWindow(Adw.ApplicationWindow):
                     self._on_image_error
                 )
             else:
+                 print(f"[window] source='{source_id}' returned no image URL")
                  GLib.idle_add(self._on_image_error, Exception("Could not retrieve image URL"))
         except Exception as e:
             print(f"Error fetching URL: {e}")

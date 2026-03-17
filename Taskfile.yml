@@ -1,0 +1,28 @@
+version: "3"
+
+tasks:
+  build-image:
+    desc: Build Docker image
+    cmds:
+      - docker build --no-cache -t catgirldownloader-packager .
+
+  build-packages:
+    desc: Build packages (no Flatpak)
+    deps: [build-image]
+    cmds:
+      - docker run --rm -v "{{.USER_WORKING_DIR}}":/workspace catgirldownloader-packager
+
+  build-packages-flatpak:
+    desc: Build packages with Flatpak enabled
+    deps: [build-image]
+    cmds:
+      - docker run --rm -e BUILD_FLATPAK=1 -v "{{.USER_WORKING_DIR}}":/workspace catgirldownloader-packager
+
+  build:
+    desc: Alias for build-packages
+    deps: [build-packages]
+
+  clean:
+    desc: Remove local artifacts
+    cmds:
+      - rm -rf .flatpak-builder/ .local/ build/
