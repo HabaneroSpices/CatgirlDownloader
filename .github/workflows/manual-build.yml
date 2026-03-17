@@ -4,10 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       build_flatpak:
-        description: "Build Flatpak too (requires GNOME runtime download)"
+        description: Build Flatpak too
         required: false
         default: false
         type: boolean
+
+permissions:
+  contents: read
 
 jobs:
   packages:
@@ -21,17 +24,25 @@ jobs:
 
       - name: Build packages (default)
         if: ${{ !inputs.build_flatpak }}
-        run: docker run --rm -v "${{ github.workspace }}:/workspace" catgirldownloader-packager
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            catgirldownloader-packager \
+            sh -lc './package.sh'
 
       - name: Build packages (with Flatpak)
         if: ${{ inputs.build_flatpak }}
-        run: >
-          docker run --rm -v "${{ github.workspace }}:/workspace" catgirldownloader-packager
-          sh -lc 'git config --global --add safe.directory /workspace
-          && git config --global --add safe.directory /workspace/.git
-          && flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          && flatpak --user install -y org.gnome.Platform/x86_64/49 org.gnome.Sdk/x86_64/49
-          && BUILD_FLATPAK=1 ./package.sh'
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            catgirldownloader-packager \
+            sh -lc '
+              git config --global --add safe.directory /workspace
+              git config --global --add safe.directory /workspace/.git
+              flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+              flatpak --user install -y org.gnome.Platform/x86_64/49 org.gnome.Sdk/x86_64/49
+              BUILD_FLATPAK=1 ./package.sh
+            '
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
